@@ -2,13 +2,19 @@
 // @name        Redefero
 // @namespace   https://indefero.hi-media-techno.com
 // @include     https://indefero.hi-media-techno.com/*
-// @version     1.6
+// @version     1.7
 // @downloadURL https://github.com/jibriss/Redefero/raw/master/redefero.user.js
 // @updateURL   https://github.com/jibriss/Redefero/raw/master/redefero.meta.js
 // ==/UserScript==
 
 var $ = unsafeWindow.$;
 var redmineApiKey = GM_getValue("redmine-api-key");
+
+
+function addLinkToFeature(id, subject) {
+    var $link = $('#branch-list a[href*="feature-' + id + '"]');
+    $link.after(' - <a target="_blank" href="https://redmine.hi-media-techno.com/issues/' + id + '" class="label">' + subject + "</a>");
+}
 
 if (redmineApiKey) {
     // On regarde si y'a des liens "features" et on récup les ids
@@ -46,12 +52,8 @@ if (redmineApiKey) {
             });
         }
     }
-    
-    function addLinkToFeature(id, subject) {
-        var $link = $('#branch-list a[href*="feature-' + id + '"]');
-        $link.after(' - <a target="_blank" href="https://redmine.hi-media-techno.com/issues/' + id + '" class="label">' + subject + "</a>");
-    }
 }
+
 
 // On ajoute les liens "source" à coté des projets dans le menu
 // On suppose qu'ils possèdent tous une branche "stable"
@@ -71,11 +73,13 @@ function clearCache() {
     }
 }
 
+
 //Option pour effacer les fichier cache, au cas où ca bug
 GM_registerMenuCommand("Vider les données en cache", function() {
     clearCache()
     alert("Données en cache vidées. Faites F5 pour recharger la page.");
 }, "c");
+
 
 //Option pour changer la clef api
 GM_registerMenuCommand("Changer la clef API redmine", function() {
@@ -84,6 +88,7 @@ GM_registerMenuCommand("Changer la clef API redmine", function() {
     clearCache();
     alert("Clef changée et données en cache vidées. Faites F5 pour recharger la page.");
 }, "r");
+
 
 // Tri des tags par ordre naturel (v1.1.10 > v1.1.9)
 var tags = $("#tag-list li");
