@@ -1,22 +1,23 @@
 // ==UserScript==
 // @name        Redefero
-// @namespace   https://indefero.hi-media-techno.com
-// @include     https://indefero.hi-media-techno.com/*
-// @version     1.7
+// @namespace   https://github.com/Hi-Media
+// @include     /^https?://indefero.*$/
+// @version     1.8
 // @downloadURL https://github.com/jibriss/Redefero/raw/master/redefero.user.js
 // @updateURL   https://github.com/jibriss/Redefero/raw/master/redefero.meta.js
 // ==/UserScript==
 
 var $ = unsafeWindow.$;
 var redmineApiKey = GM_getValue("redmine-api-key");
+var redmineBaseUrl = GM_getValue("redmine-base-url");
 
 
 function addLinkToFeature(id, subject) {
     var $link = $('#branch-list a[href*="feature-' + id + '"]');
-    $link.after(' - <a target="_blank" href="https://redmine.hi-media-techno.com/issues/' + id + '" class="label">' + subject + "</a>");
+    $link.after(' - <a target="_blank" href="' + redmineBaseUrl + id + '" class="label">' + subject + "</a>");
 }
 
-if (redmineApiKey) {
+if (redmineBaseUrl && redmineApiKey) {
     // On regarde si y'a des liens "features" et on récup les ids
     $branches = $('#branch-list a[href*="feature"]');
     var regexp = new RegExp("/feature-([0-9]+)/");
@@ -40,7 +41,7 @@ if (redmineApiKey) {
         } else {
             GM_xmlhttpRequest({
                 method: "GET",
-                url: "https://redmine.hi-media-techno.com/issues/" + id + ".json?key=" + redmineApiKey,
+                url: redmineBaseUrl + id + ".json?key=" + redmineApiKey,
                 onload: function(response) {
                     var json = '';
                     eval("json = " + response.responseText);
@@ -67,32 +68,44 @@ function clearCache() {
     var key, values = GM_listValues();
     for (i in values) {
         key = values[i]
-        if (key != "redmine-api-key") {
+        if (key != "redmine-api-key" && key != "redmine-base-url") {
             GM_deleteValue(key);
         }
     }
 }
 
 
-//Option pour effacer les fichier cache, au cas où ca bug
+// Commande pour effacer les fichier cache, au cas où ca bug
 GM_registerMenuCommand("Vider les données en cache", function() {
     clearCache()
-    alert("Données en cache vidées. Faites F5 pour recharger la page.");
+    alert("Données en cache vidées. Rechargez la page pour voir les changements.");
 }, "c");
 
 
-//Option pour changer la clef api
-GM_registerMenuCommand("Changer la clef API redmine", function() {
-    var redmineApiKey = prompt("Entrez la nouvelle clef Redmine");
-    GM_setValue("redmine-api-key", redmineApiKey);
+// Commande pour configurer Redmine
+GM_registerMenuCommand("Configurer le connecteur Redmine", function() {
+    var url = prompt("Entrez l'url de base pour accéder aux tickets de votre redmine", (redmineBaseUrl !== undefined ? redmineBaseUrl : 'https://redmine.example.com/issues/'));
+    // Trim + Ajout du "/" final si nécessaire
+    url = url.replace(/^\w+|(\s|\/)+$/g, "") + "/";
+    GM_setValue("redmine-base-url", url);
+    var key = prompt("Entrez votre clé Redmine (elle sera stockée en clair dans le navigateur)", (redmineApiKey !== undefined ? redmineApiKey : ''));
+    GM_setValue("redmine-api-key", key);
     clearCache();
-    alert("Clef changée et données en cache vidées. Faites F5 pour recharger la page.");
+    alert("Redmine configuré. Rechargez la page pour voir les changements.");
 }, "r");
+
+// Commande pour désactiver Redmine
+GM_registerMenuCommand("Désactiver le connecteur Redmine", function() {
+    GM_deleteValue("redmine-api-key");
+    GM_deleteValue("redmine-base-url");
+    clearCache();
+    alert("Redmine désactivé. Rechargez la page pour voir les changements.");
+}, "d");
 
 
 // Tri des tags par ordre naturel (v1.1.10 > v1.1.9)
 var tags = $("#tag-list li");
-var sorted = tags.get().sort(function(a, b){
+var sorted = tags.get().sort(function(a, b) {
     a = $(a).find("a").text().substr(1).split('.');
     b = $(b).find("a").text().substr(1).split('.');
     if (a[0] != b[0]) {
@@ -104,3 +117,4 @@ var sorted = tags.get().sort(function(a, b){
     }
 });
 $("#tag-list").empty().append(sorted);
+
